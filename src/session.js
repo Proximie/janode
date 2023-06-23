@@ -284,6 +284,8 @@ class Session extends EventEmitter {
     if (transaction) {
       Logger.verbose(`${LOG_NS} ${this.name} received ${janus} for transaction ${transaction}`);
 
+      console.log('owner=', this._tm.getTransactionOwner(transaction));
+
       /* Not owned by the session? */
       if (this._tm.getTransactionOwner(transaction) !== this) {
         Logger.warn(`${LOG_NS} ${this.name} transaction ${transaction} not found for incoming message ${janus}`);

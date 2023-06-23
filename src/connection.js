@@ -133,16 +133,22 @@ class Connection extends EventEmitter {
    */
   async _signalClose(graceful) {
 
-    reconnect = true;    //TODO -get from config
-
-    if (!graceful && reconnect) {
+    if (!graceful && this._config.reconnect) {
       try {
         console.log("ATTEMPTING RE-CONNECT");
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        console.log("STARTING RE-CONNECT");
+
         this.setTransport();
 
         await this._transport.open();
 
-        console.log("OPENED");
+        console.log("OPENED - claiming all sessions");
+
+        for (let [_, session] of  this._sessions) {
+          this.claim(session.id);
+        }
+
         return;
       } catch (error) {
         console.log()
@@ -379,6 +385,22 @@ class Connection extends EventEmitter {
 
     return this.sendRequest(request);
   }
+
+  async claim(session_id) {
+    Logger.info(`${LOG_NS} ${this.name} claiming session_id=${session_id}`);
+    if (!session_id) {
+      const error = new Error('session_id parameter not specified');
+      Logger.error(`${LOG_NS} ${this.name} ${error.message}`);
+      throw error;
+    }
+    const request = {
+      janus: 'claim', //TODO
+      session_id,
+    };
+
+    return this.sendRequest(request);
+  }
+
 
   /*************/
   /* ADMIN API */

@@ -20,7 +20,7 @@ class Configuration {
    * @private
    * @param {module:janode~RawConfiguration} config
    */
-  constructor({ address, retry_time_secs, max_retries, is_admin, ws_options }) {
+  constructor({ address, retry_time_secs, max_retries, is_admin, reconnect, ws_options }) {
     if (!address)
       throw new Error('invalid configuration, missing parameter "address"');
     if (Array.isArray(address) && address.length === 0)
@@ -36,6 +36,7 @@ class Configuration {
     this.retry_time_secs = (typeof retry_time_secs === 'number') ? retry_time_secs : DEF_RETRY_TIME;
     this.max_retries = (typeof max_retries === 'number') ? max_retries : DEF_MAX_RETRIES;
     this.is_admin = (typeof is_admin === 'boolean') ? is_admin : false;
+    this.reconnect = (typeof reconnect === 'boolean') ? reconnect : false;
     this.ws_options = (typeof ws_options === 'object') ? ws_options : null;
   }
 
@@ -75,6 +76,9 @@ class Configuration {
     return this.is_admin;
   }
 
+  reconnect() {
+    return this.reconnect;
+  }
   /**
    * Return the specific WebSocket transport options.
    *
