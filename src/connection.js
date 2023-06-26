@@ -102,7 +102,7 @@ class Connection extends EventEmitter {
       getRemoteHostname: _ => { throw new Error('transport does not implement the "getRemoteHostname" function'); },
     };
 
-    this.setTransport();
+    this._setTransport();
 
     /* Set a dummy error listener to avoid unmanaged errors */
     this.on('error', e => `${LOG_NS} ${this.name} catched unmanaged error ${e.message}`);
@@ -113,7 +113,7 @@ class Connection extends EventEmitter {
    *
    * @private
    */
-  setTransport() {
+  _setTransport() {
     try {
       let transport;
       /* Check the protocol to define the kind of transport */
@@ -138,11 +138,12 @@ class Connection extends EventEmitter {
    */
   async _signalClose(graceful) {
 
-    if (!graceful && this._config.reconnectTimeSecs) {
+    const reconnectTimeSeconds = this._config.getReconnectTimeSeconds();
+    if (!graceful && reconnectTimeSecs) {
       try {
         Logger.warn(`${LOG_NS} ${this.name} Connection has terminated - will attempt re-connection`);
 
-        await new Promise((resolve) => setTimeout(resolve, reconnectTimeSecs * 1000));
+        await new Promise((resolve) => setTimeout(resolve, reconnectTimeSeconds * 1000));
 
         Logger.verbose(`${LOG_NS} ${this.name} Attempting re-connection`);
         this.setTransport();

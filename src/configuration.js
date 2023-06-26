@@ -83,7 +83,7 @@ class Configuration {
    *
    * @returns {boolean} The value of the property
    */
-  reconnectTimeSecs() {
+  getReconnectTimeSeconds() {
     return this.reconnect_time_secs;
   }
   /**
