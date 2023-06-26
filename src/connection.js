@@ -80,6 +80,13 @@ class Connection extends EventEmitter {
     this.id = parseInt(getNumericID());
 
     /**
+     * Flag to indicate if we are in the process of re-connecting.
+     *
+     * @type {boolean}
+     */
+    this.isReconnecting = false;
+
+    /**
      * A more descriptive, not unique string (used for logging).
      *
      * @type {string}
@@ -140,8 +147,15 @@ class Connection extends EventEmitter {
 
     const reconnectTimeSeconds = this._config.getReconnectTimeSeconds();
     if (!graceful && reconnectTimeSecs) {
+      if (this.isReconnecting) {
+        Logger.verbose(`${LOG_NS} ${this.name} Already re-connecting - ignoring`);
+        return;
+      }
+
       try {
         Logger.warn(`${LOG_NS} ${this.name} Connection has terminated - will attempt re-connection`);
+
+        this.isReconnecting = true;
 
         await new Promise((resolve) => setTimeout(resolve, reconnectTimeSeconds * 1000));
 
@@ -154,6 +168,8 @@ class Connection extends EventEmitter {
         for (let [_, session] of  this._sessions) {
           session.claim();
         }
+
+        this.isReconnecting = false;
 
         return;
       } catch (error) {
@@ -195,6 +211,8 @@ class Connection extends EventEmitter {
 
     /* Remove all listeners to avoid leaks */
     this.removeAllListeners();
+
+    this.isReconnecting = false;
   }
 
   /**
