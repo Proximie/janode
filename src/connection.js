@@ -146,7 +146,7 @@ class Connection extends EventEmitter {
   async _signalClose(graceful) {
 
     const reconnectTimeSeconds = this._config.getReconnectTimeSeconds();
-    if (!graceful && reconnectTimeSecs) {
+    if (!graceful && reconnectTimeSeconds) {
       if (this.isReconnecting) {
         Logger.verbose(`${LOG_NS} ${this.name} Already re-connecting - ignoring`);
         return;
@@ -160,7 +160,7 @@ class Connection extends EventEmitter {
         await new Promise((resolve) => setTimeout(resolve, reconnectTimeSeconds * 1000));
 
         Logger.verbose(`${LOG_NS} ${this.name} Attempting re-connection`);
-        this.setTransport();
+        this._setTransport();
 
         await this._transport.open();
 
