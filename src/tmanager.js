@@ -49,7 +49,6 @@ class TransactionManager {
    * Clear the internal transaction table and the debugging printing task.
    */
   clear() {
-    console.trace("CLeairing transaction manager");
     Logger.info(`${LOG_NS} [${this.id}] clearing transaction manager`);
     clearInterval(this._dbgtask);
     this.transactions.clear();
@@ -138,11 +137,7 @@ class TransactionManager {
    * @returns {PendingTransaction|void} The newly created transaction, or nothing if the id already exists
    */
   createTransaction(id, owner, request, done, error) {
-    if (this.has(id)){
-      console.error("Already has id"); 
-      return;
-    }
-    //console.log("Adding transaction - owner=", owner);
+    if (this.has(id)) return;
     const tx = {
       id,
       owner,

@@ -108,6 +108,11 @@ class Connection extends EventEmitter {
     this.on('error', e => `${LOG_NS} ${this.name} catched unmanaged error ${e.message}`);
   }
 
+  /**
+   * Set the transport used by this connection
+   *
+   * @private
+   */
   setTransport() {
     try {
       let transport;
@@ -133,25 +138,26 @@ class Connection extends EventEmitter {
    */
   async _signalClose(graceful) {
 
-    if (!graceful && this._config.reconnect) {
+    if (!graceful && this._config.reconnectTimeSecs) {
       try {
-        console.log("ATTEMPTING RE-CONNECT");
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-        console.log("STARTING RE-CONNECT");
+        Logger.warn(`${LOG_NS} ${this.name} Connection has terminated - will attempt re-connection`);
 
+        await new Promise((resolve) => setTimeout(resolve, reconnectTimeSecs * 1000));
+
+        Logger.verbose(`${LOG_NS} ${this.name} Attempting re-connection`);
         this.setTransport();
 
         await this._transport.open();
 
-        console.log("OPENED - claiming all sessions");
-
+        Logger.verbose(`${LOG_NS} ${this.name} Re-connected - claiming all sessions`);
         for (let [_, session] of  this._sessions) {
-          session.claim(session.id);
+          session.claim();
         }
 
         return;
       } catch (error) {
-        console.log()
+        Logger.error(`${LOG_NS} ${this.name} error while re-connecting (${error.message})`);
+        // give up - drop to rest of close handler
       }
     }
 
@@ -235,8 +241,6 @@ class Connection extends EventEmitter {
     if (transaction) {
       Logger.verbose(`${LOG_NS} ${this.name} received ${janus} for transaction ${transaction}`);
 
-      console.log("Transactions=", this._tm.transactions);
-
       /* Not owned by this connection? */
       if (this._tm.getTransactionOwner(transaction) !== this) {
         Logger.warn(`${LOG_NS} ${this.name} transaction ${transaction} not found for incoming messsage ${janus}`);
@@ -303,7 +307,6 @@ class Connection extends EventEmitter {
     this._decorateRequest(request);
 
     return new Promise((resolve, reject) => {
-      //console.log("Create transaction", request.transaction, this);
       /* Create a new transaction if the transaction does not exist */
       /* Use promise resolve and reject fn as callbacks for the transaction */
       this._tm.createTransaction(request.transaction, this, request.janus, resolve, reject);
@@ -388,7 +391,6 @@ class Connection extends EventEmitter {
 
     return this.sendRequest(request);
   }
-
 
   /*************/
   /* ADMIN API */

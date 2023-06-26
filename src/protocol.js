@@ -32,6 +32,7 @@ export const JANUS = {
     CREATE_SESSION: 'create',
     KEEPALIVE: 'keepalive',
     DESTROY_SESSION: 'destroy',
+    CLAIM: 'claim',
     /* handle level requests */
     ATTACH_PLUGIN: 'attach',
     MESSAGE: 'message',
