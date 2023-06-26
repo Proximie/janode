@@ -146,7 +146,7 @@ class Connection extends EventEmitter {
         console.log("OPENED - claiming all sessions");
 
         for (let [_, session] of  this._sessions) {
-          this.claim(session.id);
+          session.claim(session.id);
         }
 
         return;
@@ -235,6 +235,8 @@ class Connection extends EventEmitter {
     if (transaction) {
       Logger.verbose(`${LOG_NS} ${this.name} received ${janus} for transaction ${transaction}`);
 
+      console.log("Transactions=", this._tm.transactions);
+
       /* Not owned by this connection? */
       if (this._tm.getTransactionOwner(transaction) !== this) {
         Logger.warn(`${LOG_NS} ${this.name} transaction ${transaction} not found for incoming messsage ${janus}`);
@@ -301,6 +303,7 @@ class Connection extends EventEmitter {
     this._decorateRequest(request);
 
     return new Promise((resolve, reject) => {
+      //console.log("Create transaction", request.transaction, this);
       /* Create a new transaction if the transaction does not exist */
       /* Use promise resolve and reject fn as callbacks for the transaction */
       this._tm.createTransaction(request.transaction, this, request.janus, resolve, reject);
@@ -381,21 +384,6 @@ class Connection extends EventEmitter {
 
     const request = {
       janus: JANUS.REQUEST.SERVER_INFO,
-    };
-
-    return this.sendRequest(request);
-  }
-
-  async claim(session_id) {
-    Logger.info(`${LOG_NS} ${this.name} claiming session_id=${session_id}`);
-    if (!session_id) {
-      const error = new Error('session_id parameter not specified');
-      Logger.error(`${LOG_NS} ${this.name} ${error.message}`);
-      throw error;
-    }
-    const request = {
-      janus: 'claim', //TODO
-      session_id,
     };
 
     return this.sendRequest(request);

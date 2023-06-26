@@ -284,7 +284,7 @@ class Session extends EventEmitter {
     if (transaction) {
       Logger.verbose(`${LOG_NS} ${this.name} received ${janus} for transaction ${transaction}`);
 
-      console.log('owner=', this._tm.getTransactionOwner(transaction));
+      console.log('my get transactions=', this._tm.get(transaction));
 
       /* Not owned by the session? */
       if (this._tm.getTransactionOwner(transaction) !== this) {
@@ -363,9 +363,12 @@ class Session extends EventEmitter {
       /* Use promise resolve and reject fn as callbacks for the transaction */
       this._tm.createTransaction(request.transaction, this, request.janus, resolve, reject);
 
+      console.log('my add transactions=', this._tm.get(request.transaction));
+
       /* Send this message through the parent janode connection */
       this.connection.sendRequest(request).catch(error => {
         /* In case of error quickly close the transaction */
+        console.error("Closinh transaction");
         this._tm.closeTransactionWithError(request.transaction, this, error);
       });
     });
@@ -406,6 +409,29 @@ class Session extends EventEmitter {
     }
   }
 
+  
+  async claim(session_id) {
+    Logger.info(`${LOG_NS} ${this.name} claiming session_id=${session_id}`);
+    if (!session_id) {
+      const error = new Error('session_id parameter not specified');
+      Logger.error(`${LOG_NS} ${this.name} ${error.message}`);
+      throw error;
+    }
+    const request = {
+      janus: 'claim', //TODO
+      session_id,
+    };
+
+    try {
+      await this.sendRequest(request);
+      return;
+    }
+    catch (error) {
+      Logger.error(`${LOG_NS} ${this.name} error while claiming session (${error.message})`);
+      throw error;
+    }
+
+  }
   /**
    * Attach a plugin in this session using a plugin descriptor.
    * If the Handle param is missing, a new generic Handle will be attached.
