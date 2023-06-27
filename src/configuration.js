@@ -8,6 +8,7 @@
 
 const DEF_RETRY_TIME = 10;
 const DEF_MAX_RETRIES = 5;
+const DEF_RECONNECT_TIME = 0;
 
 /**
  * Class representing a Janode configuration.
@@ -20,7 +21,7 @@ class Configuration {
    * @private
    * @param {module:janode~RawConfiguration} config
    */
-  constructor({ address, retry_time_secs, max_retries, is_admin, ws_options }) {
+  constructor({ address, retry_time_secs, max_retries, is_admin, reconnect_time_secs, ws_options }) {
     if (!address)
       throw new Error('invalid configuration, missing parameter "address"');
     if (Array.isArray(address) && address.length === 0)
@@ -36,6 +37,7 @@ class Configuration {
     this.retry_time_secs = (typeof retry_time_secs === 'number') ? retry_time_secs : DEF_RETRY_TIME;
     this.max_retries = (typeof max_retries === 'number') ? max_retries : DEF_MAX_RETRIES;
     this.is_admin = (typeof is_admin === 'boolean') ? is_admin : false;
+    this.reconnect_time_secs = (typeof reconnect_time_secs === 'number') ? reconnect_time_secs : DEF_RECONNECT_TIME;
     this.ws_options = (typeof ws_options === 'object') ? ws_options : null;
   }
 
@@ -75,6 +77,15 @@ class Configuration {
     return this.is_admin;
   }
 
+  /**
+   * Period before attempting re-connection following error. A value of zero indicates that
+   * re-connection should not be attempted.
+   *
+   * @returns {boolean} The value of the property
+   */
+  getReconnectTimeSeconds() {
+    return this.reconnect_time_secs;
+  }
   /**
    * Return the specific WebSocket transport options.
    *

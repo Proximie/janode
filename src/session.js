@@ -405,6 +405,32 @@ class Session extends EventEmitter {
   }
 
   /**
+   * Claim an existing session_id for a new connection (eg. after the original
+   * connection became disconnected we need to do this for the re-establshed
+   * connection).
+   *
+   * @returns {Promise<void>}
+   */
+  async claim() {
+    Logger.info(`${LOG_NS} ${this.name} claiming session_id=${this.id}`);
+
+    const request = {
+      janus: JANUS.REQUEST.CLAIM,
+      session_id: this.id,
+    };
+
+    try {
+      await this.sendRequest(request);
+      return;
+    }
+    catch (error) {
+      Logger.error(`${LOG_NS} ${this.name} error while claiming session (${error.message})`);
+      throw error;
+    }
+
+  }
+
+  /**
    * Attach a plugin in this session using a plugin descriptor.
    * If the Handle param is missing, a new generic Handle will be attached.
    * Returns a promise with the pending attach operation.

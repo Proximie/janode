@@ -80,6 +80,13 @@ class Connection extends EventEmitter {
     this.id = parseInt(getNumericID());
 
     /**
+     * Flag to indicate if we are in the process of re-connecting.
+     *
+     * @type {boolean}
+     */
+    this.isReconnecting = false;
+
+    /**
      * A more descriptive, not unique string (used for logging).
      *
      * @type {string}
@@ -102,22 +109,31 @@ class Connection extends EventEmitter {
       getRemoteHostname: _ => { throw new Error('transport does not implement the "getRemoteHostname" function'); },
     };
 
+    this._setTransport();
+
+    /* Set a dummy error listener to avoid unmanaged errors */
+    this.on('error', e => `${LOG_NS} ${this.name} catched unmanaged error ${e.message}`);
+  }
+
+  /**
+   * Set the transport used by this connection
+   *
+   * @private
+   */
+  _setTransport() {
     try {
       let transport;
       /* Check the protocol to define the kind of transport */
-      if (checkUrl(server_config.getAddress()[0].url, ['ws', 'wss', 'ws+unix', 'wss+unix'])) {
+      if (checkUrl(this._config.getAddress()[0].url, ['ws', 'wss', 'ws+unix', 'wss+unix'])) {
         transport = new WsTransport(this);
       }
-      if (checkUrl(server_config.getAddress()[0].url, ['file'])) {
+      if (checkUrl(this._config.getAddress()[0].url, ['file'])) {
         transport = new UnixTransport(this);
       }
       if (transport) this._transport = transport;
     } catch (error) {
       Logger.error(`${LOG_NS} ${this.name} error while initializing transport (${error.message})`);
     }
-
-    /* Set a dummy error listener to avoid unmanaged errors */
-    this.on('error', e => `${LOG_NS} ${this.name} catched unmanaged error ${e.message}`);
   }
 
   /**
@@ -127,7 +143,41 @@ class Connection extends EventEmitter {
    * @private
    * @param {boolean} graceful - True if this is an expected disconnection
    */
-  _signalClose(graceful) {
+  async _signalClose(graceful) {
+
+    const reconnectTimeSeconds = this._config.getReconnectTimeSeconds();
+    if (!graceful && reconnectTimeSeconds) {
+      if (this.isReconnecting) {
+        Logger.verbose(`${LOG_NS} ${this.name} Already re-connecting - ignoring`);
+        return;
+      }
+
+      try {
+        Logger.warn(`${LOG_NS} ${this.name} Connection has terminated - will attempt re-connection`);
+
+        this.isReconnecting = true;
+
+        await new Promise((resolve) => setTimeout(resolve, reconnectTimeSeconds * 1000));
+
+        Logger.verbose(`${LOG_NS} ${this.name} Attempting re-connection`);
+        this._setTransport();
+
+        await this._transport.open();
+
+        Logger.verbose(`${LOG_NS} ${this.name} Re-connected - claiming all sessions`);
+        for (let [_, session] of  this._sessions) {
+          session.claim();
+        }
+
+        this.isReconnecting = false;
+
+        return;
+      } catch (error) {
+        Logger.error(`${LOG_NS} ${this.name} error while re-connecting (${error.message})`);
+        // give up - drop to rest of close handler
+      }
+    }
+
     /* Close all pending transactions inside this connection with an error */
     this._tm.closeAllTransactionsWithError(null, new Error('connection closed'));
     /* Clear tx table */
@@ -161,6 +211,8 @@ class Connection extends EventEmitter {
 
     /* Remove all listeners to avoid leaks */
     this.removeAllListeners();
+
+    this.isReconnecting = false;
   }
 
   /**
