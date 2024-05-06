@@ -1,6 +1,7 @@
 node_modules
 build
 out
+.vscode
 
 config.js
 bundle.js
@@ -8,6 +9,7 @@ bundle.js
 *.log
 *.pem
 *.crt
+*.sh
 
 !.eslintrc.json
 !package.json
